@@ -1,0 +1,14 @@
+[package]
+name = "rest_native"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+axium = "0.0.0"
+axum = "0.7.4"
+num-complex = "0.4.5"
+serde = "1.0.197"
+serde_json = "1.0.114"
+tokio = "1.36.0"
