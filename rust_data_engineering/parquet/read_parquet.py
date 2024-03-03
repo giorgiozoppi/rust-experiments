@@ -15,10 +15,6 @@ result = df[df['trip_distance'] < 10]
 # Print the list of columns
 query_time = time.time() - start_time
 
-# Display the result
-print("Query result:")
-print(result.head())
-
 # Print timing information
 print(f"Loading time: {load_time} seconds")
 print(f"Query time: {query_time} seconds")
