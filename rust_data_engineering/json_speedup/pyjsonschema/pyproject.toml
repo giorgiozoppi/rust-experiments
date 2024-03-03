@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "pyjsonschema"
+version = "0.1.0"
+description = "TestPythonSchema"
+authors = ["Giorgio Zoppi <giorgio.zoppi@yenflow.com>"]
+license = "Apache License"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+jsonschema = "^4.21.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
