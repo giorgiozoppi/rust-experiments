@@ -20,5 +20,5 @@ filtered_df = df.filter(pl.col('trip_distance') < 10)
 query_time = time.time() - start_time
 print(f"Query time: {query_time} seconds")
 # Print the filtered DataFrame
-print("Filtered DataFrame:")
-print(filtered_df)
+#print("Filtered DataFrame:")
+#print(filtered_df)
