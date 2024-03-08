@@ -1,66 +1,83 @@
 use axum::{http::StatusCode, routing::post, Json, Router};
-use num_complex::Complex;
-use std::time::Instant;
-const MAX_ITER: usize = 1000;
+use image::{Rgb, RgbImage};
 use serde::{Deserialize, Serialize};
+use std::io::Cursor;
+use std::time::Instant;
+use base64::encode;
+
 #[derive(Debug, Deserialize)]
-struct Point {
-    re: f64,
-    im: f64,
-}
-#[derive(Debug, Deserialize)]
-struct MandlerbrotRequest {
-    points: Vec<Point>,
+struct ComputeRequest {
+    real: f64,
+    imag: f64,
+    width: usize,
+    height: usize,
+    max_iter: u32,
 }
 
-#[derive(Debug, Serialize)]
-struct MandlerbrotResponse {
-    iterations: Vec<usize>,
+#[derive(Serialize)]
+struct ComputeResponse {
+    image: String,
     total_time: f64,
 }
-fn julia_mandelbrot(c: Complex<f64>, z: Complex<f64>) -> usize {
-    let mut z = z;
-    for i in 0..MAX_ITER {
-        z = z * z + c;
-        if z.norm() > 2.0 {
-            return i;
+
+async fn compute(Json(request): Json<ComputeRequest>) -> (StatusCode, Json<ComputeResponse>) {
+    let mut buffer: Vec<u32> = vec![0; request.width * request.height];
+    let start_time = Instant::now();
+    for y in 0..request.height {
+        for x in 0..request.width {
+            let cx = -2.0 + x as f64 * 3.0 / request.width as f64;
+            let cy = -1.5 + y as f64 * 3.0 / request.height as f64;
+
+            let mut zx = cx;
+            let mut zy = cy;
+
+            let c = num_complex::Complex::new(request.real, request.imag);
+
+            let mut i = 0;
+            while i < request.max_iter {
+                let x_new = zx * zx - zy * zy + c.re;
+                let y_new = 2.0 * zx * zy + c.im;
+
+                if x_new * x_new + y_new * y_new > 4.0 {
+                    break;
+                }
+
+                zx = x_new;
+                zy = y_new;
+                i += 1;
+            }
+
+            buffer[y * request.width + x] = if i == request.max_iter {
+                0x000000 // Black
+            } else {
+                0xFFFFFF // White
+            };
         }
     }
-    MAX_ITER
-}
 
-async fn compute_mandelbrot(
-    // this argument tells axum to parse the request body
-    // as JSON into a `Request` type
-    Json(req): Json<MandlerbrotRequest>,
-) -> (StatusCode, Json<MandlerbrotResponse>) {
-    // insert your application logic here
-    let start_time = Instant::now();
-    let mut result = Vec::new();
-    for point in req.points.iter() {
-        let c = Complex::new(point.re, point.im);
-        let iterations = julia_mandelbrot(c, c);
-        result.push(iterations);
+    let mut image = RgbImage::new(request.width as u32, request.height as u32);
+    for y in 0..request.height {
+        for x in 0..request.width {
+            let pixel = buffer[y * request.width + x];
+            let color = Rgb([(pixel >> 16) as u8, (pixel >> 8) as u8, pixel as u8]);
+            image.put_pixel(x as u32, y as u32, color);
+        }
     }
-    let elapsed_time = start_time.elapsed().as_secs_f64();
-    let response = MandlerbrotResponse {
-        iterations: result,
-        total_time: elapsed_time,
-    };
 
-    // this will be converted into a JSON response
-    // with a status code of `201 Created`
-    (StatusCode::CREATED, Json(response))
+    let mut cursor = Cursor::new(Vec::new());
+    image
+        .write_to(&mut cursor, image::ImageOutputFormat::Png)
+        .unwrap();
+    let image_bytes = cursor.into_inner();
+    let elapsed_time = start_time.elapsed().as_secs_f64();
+    let image_base64 = encode(&image_bytes);
+    let response = ComputeResponse { image: image_base64, total_time: elapsed_time };
+    (StatusCode::OK, Json(response))
 }
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main]
 async fn main() {
-    // build our application with a route
-    let app = Router::new()
-        // `POST /users` goes to `create_user`
-        .route("/compute", post(compute_mandelbrot));
-
-    // run our app with hyper, listening globally on port 3000
+    let app = Router::new().route("/compute", post(compute));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8001").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }

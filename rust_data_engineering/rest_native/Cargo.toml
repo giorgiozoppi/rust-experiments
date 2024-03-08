@@ -6,9 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axium = "0.0.0"
 axum = "0.7.4"
+image = "0.24.9"
+minifb = "0.25.0"
 num-complex = "0.4.5"
-serde = "1.0.197"
+tower = "0.4"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_derive = "1.0.197"
 serde_json = "1.0.114"
-tokio = "1.36.0"
+tokio = { version = "1.36.0", features = ["full"] }
+base64 = "0.22.0"
